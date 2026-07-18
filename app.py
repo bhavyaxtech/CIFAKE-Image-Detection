@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import logging
 import os
 from datetime import datetime
 
@@ -31,6 +32,7 @@ init_db()
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
+logger = logging.getLogger(__name__)
 _model = None
 
 
@@ -39,6 +41,7 @@ def _get_model():
     if _model is None:
         from src.model import load_trained_model
 
+        logger.info("Loading CIFAKE model from %s", config.FINAL_MODEL_PATH)
         _model = load_trained_model(config.FINAL_MODEL_PATH)
     return _model
 
@@ -97,57 +100,29 @@ def predict():
     uploaded.save(image_path)
 
     try:
-        print("=" * 60)
-        print("Loading model...")
-
         with Image.open(image_path) as image:
             image.verify()
 
         model = _get_model()
 
-        print("Model loaded successfully.")
-
         from src.gradcam import explain_image
         from src.predict import predict_single_image
 
-        print("Running prediction...")
-
         prediction = predict_single_image(model, image_path)
-
-        print("Prediction:", prediction)
-
-        print("Generating Grad-CAM...")
-
-        explain_image(
+        _, gradcam_path, _ = explain_image(
             model=model,
             image_path=image_path,
             output_dir=GRADCAM_DIR,
         )
+        generated_gradcam = os.path.basename(gradcam_path)
 
-        generated_gradcam = next(
-            (
-                name
-                for name in os.listdir(GRADCAM_DIR)
-                if name.startswith(os.path.splitext(stored_filename)[0] + "_gradcam_")
-            ),
-            None,
-        )
-
-        print("GradCAM:", generated_gradcam)
-
-    except Exception as e:
-        import traceback
-
-        print("\n")
-        print("=" * 60)
-        print("ERROR DURING PREDICTION")
-        traceback.print_exc()
-        print("=" * 60)
+    except Exception:
+        logger.exception("Prediction failed for uploaded file %s", original_filename)
 
         if os.path.exists(image_path):
             os.remove(image_path)
 
-        return f"<h2>Prediction Error</h2><pre>{traceback.format_exc()}</pre>", 500
+        abort(500)
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -212,9 +187,13 @@ def download_report(record_id: int):
         Spacer(1, 0.2 * inch),
     ]
     original_path = os.path.join(UPLOAD_DIR, view["stored_filename"])
-    gradcam_path = os.path.join(GRADCAM_DIR, view["gradcam_filename"])
+    gradcam_path = (
+        os.path.join(GRADCAM_DIR, view["gradcam_filename"])
+        if view.get("gradcam_filename")
+        else None
+    )
     for label, path in (("Original image", original_path), ("Grad-CAM overlay", gradcam_path)):
-        if os.path.isfile(path):
+        if path and os.path.isfile(path):
             story.append(Paragraph(label, styles["Heading3"]))
             story.append(ReportImage(path, width=3.2 * inch, height=2.4 * inch, kind="proportional"))
             story.append(Spacer(1, 0.15 * inch))
@@ -225,4 +204,5 @@ def download_report(record_id: int):
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    port = int(os.environ.get("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=False)

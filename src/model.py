@@ -7,6 +7,9 @@ Flask app and command-line scripts can keep importing them unchanged.
 """
 
 import os
+import json
+import tempfile
+import zipfile
 from typing import Optional
 
 os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
@@ -175,13 +178,52 @@ def set_backbone_trainable(
 def load_trained_model(model_path: str) -> tf.keras.Model:
     """Load a saved `.keras` model."""
     validate_model_file(model_path)
+    load_path = model_path
+    patched_model_path = None
     try:
+        with zipfile.ZipFile(model_path, "r") as keras_archive:
+            model_config = json.loads(keras_archive.read("config.json"))
+            config_changed = False
+            for layer_config in model_config.get("config", {}).get("layers", []):
+                if (
+                    layer_config.get("class_name") == "Lambda"
+                    and layer_config.get("config", {}).get("name") == "efficientnet_value_range"
+                ):
+                    layer_config["module"] = "keras.layers"
+                    layer_config["class_name"] = "Rescaling"
+                    layer_config["registered_name"] = None
+                    layer_config["config"] = {
+                        "name": "efficientnet_value_range",
+                        "trainable": False,
+                        "dtype": layer_config["config"]["dtype"],
+                        "scale": 255.0,
+                        "offset": 0.0,
+                    }
+                    for inbound_node in layer_config.get("inbound_nodes", []):
+                        inbound_node["kwargs"] = {}
+                    config_changed = True
+
+            if config_changed:
+                patched_model = tempfile.NamedTemporaryFile(delete=False, suffix=".keras")
+                patched_model.close()
+                patched_model_path = patched_model.name
+                with zipfile.ZipFile(patched_model_path, "w") as patched_archive:
+                    for archive_item in keras_archive.infolist():
+                        data = keras_archive.read(archive_item.filename)
+                        if archive_item.filename == "config.json":
+                            data = json.dumps(model_config).encode("utf-8")
+                        patched_archive.writestr(archive_item, data)
+                load_path = patched_model_path
+
         # This project owns the saved model and its Lambda layer is defined in
         # build_efficientnet_model; allow Keras to deserialize that trusted
         # local artifact for evaluation and web inference.
-        model = tf.keras.models.load_model(model_path, safe_mode=False)
+        model = tf.keras.models.load_model(load_path, safe_mode=False)
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Could not load model from '{model_path}': {exc}") from exc
+    finally:
+        if patched_model_path and os.path.isfile(patched_model_path):
+            os.remove(patched_model_path)
 
     logger.info("Loaded model from %s.", os.path.abspath(model_path))
     return model
