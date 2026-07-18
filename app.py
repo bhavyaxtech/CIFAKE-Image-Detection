@@ -25,6 +25,10 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
 GRADCAM_DIR = os.path.join(BASE_DIR, "static", "gradcam")
 ALLOWED_EXTENSIONS = {"bmp", "gif", "jpg", "jpeg", "png", "webp"}
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+SKIP_RENDER_GRADCAM = (
+    os.environ.get("RENDER") == "true"
+    and os.environ.get("CIFAKE_ENABLE_RENDER_GRADCAM") != "1"
+)
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(GRADCAM_DIR, exist_ok=True)
@@ -109,12 +113,19 @@ def predict():
         from src.predict import predict_single_image
 
         prediction = predict_single_image(model, image_path)
-        _, gradcam_path, _ = explain_image(
-            model=model,
-            image_path=image_path,
-            output_dir=GRADCAM_DIR,
-        )
-        generated_gradcam = os.path.basename(gradcam_path)
+        generated_gradcam = None
+        if SKIP_RENDER_GRADCAM:
+            logger.warning(
+                "Skipping Grad-CAM on Render to avoid worker memory exhaustion. "
+                "Set CIFAKE_ENABLE_RENDER_GRADCAM=1 to force it."
+            )
+        else:
+            _, gradcam_path, _ = explain_image(
+                model=model,
+                image_path=image_path,
+                output_dir=GRADCAM_DIR,
+            )
+            generated_gradcam = os.path.basename(gradcam_path)
 
     except Exception:
         logger.exception("Prediction failed for uploaded file %s", original_filename)

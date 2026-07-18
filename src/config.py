@@ -24,6 +24,11 @@ import os
 # with EfficientNet-sized batches. Disable oneDNN before TensorFlow imports;
 # the app and training still run normally, just with the safer CPU kernels.
 os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
+os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MALLOC_ARENA_MAX", "2")
 
 # ------------------------------------------------------------------------
 # BASE PROJECT PATHS
