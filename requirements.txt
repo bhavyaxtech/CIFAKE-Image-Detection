@@ -19,8 +19,9 @@ tensorboard>=2.20
 numpy>=1.26
 pandas>=2.2
 
-# Image processing
-opencv-python>=4.9
+# Image processing. Use the headless OpenCV build so Render/Linux does not
+# require GUI libraries such as libGL.
+opencv-python-headless>=4.9
 Pillow>=10.3
 
 # Visualization
