@@ -26,7 +26,7 @@ def predict_single_image(model: tf.keras.Model, image_path: str) -> Dict:
     input_shape = model.input_shape[1:3]
     preprocessed = preprocess_single_image(image_path, image_size=tuple(input_shape))
     with tf.device(get_compute_device()):
-        real_probability = float(model.predict(preprocessed, verbose=0)[0][0])
+        real_probability = float(model(preprocessed, training=False).numpy()[0][0])
     label = get_predicted_label(real_probability)
     predicted_confidence = real_probability if label == "REAL" else 1.0 - real_probability
 

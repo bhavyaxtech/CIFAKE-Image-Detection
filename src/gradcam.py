@@ -134,7 +134,7 @@ def explain_image(
     preprocessed = preprocess_single_image(image_path, image_size=tuple(input_shape))
     compute_device = get_compute_device()
     with tf.device(compute_device):
-        real_probability = float(model.predict(preprocessed, verbose=0)[0][0])
+        real_probability = float(model(preprocessed, training=False).numpy()[0][0])
     predicted_label = get_predicted_label(real_probability)
     class_index = config.CLASS_INDICES[predicted_label]
     with tf.device(compute_device):

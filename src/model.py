@@ -225,6 +225,7 @@ def load_trained_model(model_path: str) -> tf.keras.Model:
         if patched_model_path and os.path.isfile(patched_model_path):
             os.remove(patched_model_path)
 
+    model.jit_compile = False
     logger.info("Loaded model from %s.", os.path.abspath(model_path))
     return model
 
