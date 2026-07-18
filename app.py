@@ -97,29 +97,60 @@ def predict():
     uploaded.save(image_path)
 
     try:
+        print("=" * 60)
+        print("Loading model...")
+
         with Image.open(image_path) as image:
             image.verify()
+
         model = _get_model()
+
+        print("Model loaded successfully.")
+
         from src.gradcam import explain_image
         from src.predict import predict_single_image
 
+        print("Running prediction...")
+
         prediction = predict_single_image(model, image_path)
-        gradcam_name = f"{os.path.splitext(stored_filename)[0]}_gradcam_{prediction['predicted_label']}.png"
-        explain_image(model, image_path, output_dir=GRADCAM_DIR)
+
+        print("Prediction:", prediction)
+
+        print("Generating Grad-CAM...")
+
+        explain_image(
+            model=model,
+            image_path=image_path,
+            output_dir=GRADCAM_DIR,
+        )
+
         generated_gradcam = next(
             (
                 name
                 for name in os.listdir(GRADCAM_DIR)
                 if name.startswith(os.path.splitext(stored_filename)[0] + "_gradcam_")
             ),
-            gradcam_name,
+            None,
         )
-    except Exception:
+
+        print("GradCAM:", generated_gradcam)
+
+    except Exception as e:
+        import traceback
+
+        print("\n")
+        print("=" * 60)
+        print("ERROR DURING PREDICTION")
+        traceback.print_exc()
+        print("=" * 60)
+
         if os.path.exists(image_path):
             os.remove(image_path)
-        raise
+
+        return f"<h2>Prediction Error</h2><pre>{traceback.format_exc()}</pre>", 500
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     record_id = create_prediction(
         {
             "original_filename": original_filename,
@@ -132,6 +163,7 @@ def predict():
             "created_at": now,
         }
     )
+
     return redirect(url_for("result", record_id=record_id))
 
 
