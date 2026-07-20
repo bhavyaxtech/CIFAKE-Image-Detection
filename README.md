@@ -1,3 +1,13 @@
+---
+title: CIFAKE Image Detection
+emoji: 🔍
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # CIFAKE: Real vs AI-Generated Image Detection
 
 This project trains a TensorFlow/Keras CNN to classify CIFAKE images as:
