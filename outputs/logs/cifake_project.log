@@ -8734,3 +8734,37 @@ tensorflow.python.summary.tb_summary.TBNotInstalledError: TensorBoard is not ins
 2026-07-16 16:26:32,306 | INFO     | werkzeug | 127.0.0.1 - - [16/Jul/2026 16:26:32] "GET /static/uploads/20260716162629432692_87500673_7cec21f38a_b.jpg HTTP/1.1" 200 -
 2026-07-16 16:26:32,378 | INFO     | werkzeug | 127.0.0.1 - - [16/Jul/2026 16:26:32] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
 2026-07-16 16:26:32,379 | INFO     | werkzeug | 127.0.0.1 - - [16/Jul/2026 16:26:32] "GET /static/gradcam/20260716162629432692_87500673_7cec21f38a_b_gradcam_REAL.png HTTP/1.1" 200 -
+2026-07-24 19:02:24,461 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:05:19,745 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:09:58,220 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:11:56,473 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:13:21,869 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:14:14,353 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:14:15,551 | INFO     | src.model | Built EfficientNetB0 transfer-learning model with input_shape=(224, 224, 3) and weights=None.
+2026-07-24 19:14:16,318 | WARNING  | tensorflow | TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+2026-07-24 19:15:12,827 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:15:14,297 | INFO     | src.model | Built EfficientNetB0 transfer-learning model with input_shape=(224, 224, 3) and weights=None.
+2026-07-24 19:15:15,022 | WARNING  | tensorflow | TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+2026-07-24 19:15:15,036 | INFO     | src.model | Loaded model from C:\Desktop - Copy\CIFAKE-Image-Detection\outputs\models\cifake_final_model.keras.
+2026-07-24 19:15:15,064 | WARNING  | src.utils | TensorFlow did not detect a GPU; using /CPU:0.
+2026-07-24 19:15:17,506 | INFO     | src.predict | Prediction for static/uploads\20260724190032701214_images_1.jpg: FAKE (87.02%)
+2026-07-24 19:15:17,513 | WARNING  | src.utils | TensorFlow did not detect a GPU; using /CPU:0.
+2026-07-24 19:15:19,080 | INFO     | src.gradcam | Grad-CAM overlay saved to static/gradcam\20260724190032701214_images_1_gradcam_FAKE.png.
+2026-07-24 19:15:19,081 | INFO     | src.gradcam | Grad-CAM complete for static/uploads\20260724190032701214_images_1.jpg: FAKE (87.02%).
+2026-07-24 19:15:41,893 | WARNING  | tensorflow | From C:\Users\BHAVYA REDDY\AppData\Local\Programs\Python\Python313\Lib\site-packages\keras\src\backend\tensorflow\core.py:233: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+2026-07-24 19:15:43,162 | INFO     | src.model | Built EfficientNetB0 transfer-learning model with input_shape=(224, 224, 3) and weights=None.
+2026-07-24 19:15:43,949 | WARNING  | tensorflow | TensorFlow GPU support is not available on native Windows for TensorFlow >= 2.11. Even if CUDA/cuDNN are installed, GPU will not be used. Please use WSL2 or the TensorFlow-DirectML plugin.
+2026-07-24 19:15:43,960 | INFO     | src.model | Loaded model from C:\Desktop - Copy\CIFAKE-Image-Detection\outputs\models\cifake_final_model.keras.
+2026-07-24 19:15:43,979 | WARNING  | src.utils | TensorFlow did not detect a GPU; using /CPU:0.
+2026-07-24 19:15:46,233 | INFO     | src.predict | Prediction for C:\Desktop - Copy\CIFAKE-Image-Detection\static\uploads\20260724191532869424_smoke.jpg: FAKE (87.02%)
+2026-07-24 19:15:46,238 | WARNING  | src.utils | TensorFlow did not detect a GPU; using /CPU:0.
+2026-07-24 19:15:47,947 | INFO     | src.gradcam | Grad-CAM overlay saved to C:\Desktop - Copy\CIFAKE-Image-Detection\static\gradcam\20260724191532869424_smoke_gradcam_FAKE.png.
+2026-07-24 19:15:47,947 | INFO     | src.gradcam | Grad-CAM complete for C:\Desktop - Copy\CIFAKE-Image-Detection\static\uploads\20260724191532869424_smoke.jpg: FAKE (87.02%).

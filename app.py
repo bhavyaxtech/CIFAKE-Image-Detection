@@ -7,15 +7,10 @@ import os
 from datetime import datetime
 
 from flask import Flask, abort, redirect, render_template, request, send_file, url_for
+from itsdangerous import BadSignature, URLSafeSerializer
 from PIL import Image
 from werkzeug.utils import secure_filename
 
-from database.db import (
-    create_prediction,
-    get_prediction,
-    init_db,
-    list_predictions,
-)
 from src import config
 
 
@@ -27,11 +22,15 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(GRADCAM_DIR, exist_ok=True)
-init_db()
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
+app.config["SECRET_KEY"] = os.environ.get(
+    "CIFAKE_SECRET_KEY", "cifake-local-result-token-key"
+)
+
 _model = None
+_serializer = URLSafeSerializer(app.config["SECRET_KEY"], salt="cifake-result")
 
 
 def _get_model():
@@ -47,23 +46,29 @@ def _allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.errorhandler(400)
-def bad_request(error):
-    return render_template("404.html", message=str(error)), 400
+def _format_percent(value: float) -> str:
+    return f"{value * 100:.2f}"
 
 
-@app.errorhandler(413)
-def request_too_large(error):
-    return render_template("404.html", message="Image must be 10 MB or smaller."), 413
+def _result_token(record: dict) -> str:
+    return _serializer.dumps(record)
 
 
-def _row_view(row):
-    if row is None:
+def _record_from_token(token: str | None) -> dict | None:
+    if not token:
         return None
-    view = dict(row)
+    try:
+        record = _serializer.loads(token)
+    except BadSignature:
+        return None
+    return record if isinstance(record, dict) else None
+
+
+def _record_view(record: dict, token: str) -> dict:
+    view = dict(record)
     view["confidence_percent"] = f"{view['confidence'] * 100:.2f}%"
-    view["real_percent"] = f"{view['real_probability'] * 100:.2f}"
-    view["fake_percent"] = f"{view['fake_probability'] * 100:.2f}"
+    view["real_percent"] = _format_percent(view["real_probability"])
+    view["fake_percent"] = _format_percent(view["fake_probability"])
     view["thumbnail_url"] = url_for("static", filename=f"uploads/{view['stored_filename']}")
     view["uploaded_image_url"] = view["thumbnail_url"]
     if view.get("gradcam_filename"):
@@ -72,7 +77,33 @@ def _row_view(row):
         )
     else:
         view["gradcam_image_url"] = None
+
+    view["result_url"] = url_for("result", token=token)
+    view["report_download_url"] = url_for("download_report", token=token)
+    view["history_record"] = {
+        "id": view["id"],
+        "originalFilename": view["original_filename"],
+        "uploadedImageUrl": view["uploaded_image_url"],
+        "gradcamImageUrl": view["gradcam_image_url"],
+        "predictionLabel": view["predicted_label"],
+        "confidence": view["confidence"],
+        "realProbability": view["real_probability"],
+        "fakeProbability": view["fake_probability"],
+        "timestamp": view["created_at"],
+        "reportDownloadUrl": view["report_download_url"],
+        "resultUrl": view["result_url"],
+    }
     return view
+
+
+@app.errorhandler(400)
+def bad_request(error):
+    return render_template("404.html", message=str(error)), 400
+
+
+@app.errorhandler(413)
+def request_too_large(error):
+    return render_template("404.html", message="Image must be 10 MB or smaller."), 413
 
 
 @app.get("/")
@@ -104,7 +135,10 @@ def predict():
         from src.predict import predict_single_image
 
         prediction = predict_single_image(model, image_path)
-        gradcam_name = f"{os.path.splitext(stored_filename)[0]}_gradcam_{prediction['predicted_label']}.png"
+        gradcam_name = (
+            f"{os.path.splitext(stored_filename)[0]}_gradcam_"
+            f"{prediction['predicted_label']}.png"
+        )
         explain_image(model, image_path, output_dir=GRADCAM_DIR)
         generated_gradcam = next(
             (
@@ -120,39 +154,44 @@ def predict():
         raise
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    record_id = create_prediction(
-        {
-            "original_filename": original_filename,
-            "stored_filename": stored_filename,
-            "predicted_label": prediction["predicted_label"],
-            "real_probability": prediction["real_probability"],
-            "fake_probability": prediction["fake_probability"],
-            "confidence": prediction["predicted_confidence"],
-            "gradcam_filename": generated_gradcam,
-            "created_at": now,
-        }
-    )
-    return redirect(url_for("result", record_id=record_id))
+    record = {
+        "id": os.path.splitext(stored_filename)[0],
+        "original_filename": original_filename,
+        "stored_filename": stored_filename,
+        "predicted_label": prediction["predicted_label"],
+        "real_probability": prediction["real_probability"],
+        "fake_probability": prediction["fake_probability"],
+        "confidence": prediction["predicted_confidence"],
+        "gradcam_filename": generated_gradcam,
+        "created_at": now,
+    }
+    return redirect(url_for("result", token=_result_token(record)))
+
+
+@app.get("/result")
+def result():
+    token = request.args.get("token")
+    record = _record_from_token(token)
+    if record is None:
+        abort(404)
+    return render_template("result.html", **_record_view(record, token))
 
 
 @app.get("/result/<int:record_id>")
-def result(record_id: int):
-    view = _row_view(get_prediction(record_id))
-    if view is None:
-        abort(404)
-    view["id"] = record_id
-    return render_template("result.html", **view)
+def legacy_result(record_id: int):
+    abort(404)
 
 
 @app.get("/history")
 def history():
-    return render_template("history.html", rows=[_row_view(row) for row in list_predictions()])
+    return render_template("history.html")
 
 
-@app.get("/report/<int:record_id>")
-def download_report(record_id: int):
-    row = get_prediction(record_id)
-    if row is None:
+@app.get("/report")
+def download_report():
+    token = request.args.get("token")
+    record = _record_from_token(token)
+    if record is None:
         abort(404)
 
     from reportlab.lib.pagesizes import letter
@@ -161,11 +200,16 @@ def download_report(record_id: int):
     from reportlab.platypus import Image as ReportImage
     from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
-    view = _row_view(row)
+    view = _record_view(record, token)
     pdf_buffer = io.BytesIO()
-    document = SimpleDocTemplate(pdf_buffer, pagesize=letter, rightMargin=0.65 * inch,
-                                 leftMargin=0.65 * inch, topMargin=0.6 * inch,
-                                 bottomMargin=0.6 * inch)
+    document = SimpleDocTemplate(
+        pdf_buffer,
+        pagesize=letter,
+        rightMargin=0.65 * inch,
+        leftMargin=0.65 * inch,
+        topMargin=0.6 * inch,
+        bottomMargin=0.6 * inch,
+    )
     styles = getSampleStyleSheet()
     story = [
         Paragraph("CIFAKE Image Analysis Report", styles["Title"]),
@@ -179,17 +223,28 @@ def download_report(record_id: int):
         Paragraph(f"FAKE probability: {view['fake_percent']}%", styles["BodyText"]),
         Spacer(1, 0.2 * inch),
     ]
+
     original_path = os.path.join(UPLOAD_DIR, view["stored_filename"])
-    gradcam_path = os.path.join(GRADCAM_DIR, view["gradcam_filename"])
-    for label, path in (("Original image", original_path), ("Grad-CAM overlay", gradcam_path)):
+    images = [("Original image", original_path)]
+    if view.get("gradcam_filename"):
+        images.append(("Grad-CAM overlay", os.path.join(GRADCAM_DIR, view["gradcam_filename"])))
+
+    for label, path in images:
         if os.path.isfile(path):
             story.append(Paragraph(label, styles["Heading3"]))
-            story.append(ReportImage(path, width=3.2 * inch, height=2.4 * inch, kind="proportional"))
+            story.append(
+                ReportImage(path, width=3.2 * inch, height=2.4 * inch, kind="proportional")
+            )
             story.append(Spacer(1, 0.15 * inch))
+
     document.build(story)
     pdf_buffer.seek(0)
-    return send_file(pdf_buffer, mimetype="application/pdf", as_attachment=True,
-                     download_name=f"cifake_report_{record_id}.pdf")
+    return send_file(
+        pdf_buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"cifake_report_{view['id']}.pdf",
+    )
 
 
 if __name__ == "__main__":

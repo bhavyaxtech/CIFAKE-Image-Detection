@@ -1,18 +1,22 @@
 {% extends "base.html" %}
-{% block title %}History — CIFAKE{% endblock %}
+{% block title %}History - CIFAKE{% endblock %}
 
 {% block content %}
 <section class="page-header">
-  <div class="container">
-    <h2 class="section-title mb-1"><i class="bi bi-clock-history me-2"></i>Prediction History</h2>
-    <p class="section-sub mb-0">Every image analyzed in this session, newest first.</p>
+  <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <h2 class="section-title mb-1"><i class="bi bi-clock-history me-2"></i>Prediction History</h2>
+      <p class="section-sub mb-0">Your private browser history, newest first.</p>
+    </div>
+    <button id="clearHistoryBtn" class="btn btn-outline-ghost d-none" type="button">
+      <i class="bi bi-trash3 me-1"></i> Clear All History
+    </button>
   </div>
 </section>
 
 <section class="section-pad">
   <div class="container">
-    {% if rows %}
-    <div class="panel p-3 p-md-4">
+    <div id="historyPanel" class="panel p-3 p-md-4 d-none">
       <div class="table-responsive">
         <table class="table history-table mb-0 align-middle">
           <thead>
@@ -25,40 +29,17 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            {% for row in rows %}
-            <tr>
-              <td><img src="{{ row.thumbnail_url }}" class="history-thumb" alt="{{ row.original_filename }}"></td>
-              <td class="mono small">{{ row.original_filename }}</td>
-              <td>
-                <span class="badge {{ 'badge-real' if row.predicted_label == 'REAL' else 'badge-fake' }} px-3 py-2">
-                  {{ row.predicted_label }}
-                </span>
-              </td>
-              <td class="mono">{{ row.confidence_percent }}</td>
-              <td class="mono small text-muted">{{ row.created_at }}</td>
-              <td class="text-end">
-                <a href="{{ url_for('result', record_id=row.id) }}" class="btn btn-sm btn-outline-ghost">
-                  <i class="bi bi-eye me-1"></i>View
-                </a>
-                <a href="{{ url_for('download_report', record_id=row.id) }}" class="btn btn-sm btn-download">
-                  <i class="bi bi-file-earmark-pdf"></i>
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
+          <tbody id="historyTableBody"></tbody>
         </table>
       </div>
     </div>
-    {% else %}
-    <div class="empty-state panel">
+
+    <div id="historyEmptyState" class="empty-state panel d-none">
       <i class="bi bi-inbox"></i>
       <h5>No predictions yet</h5>
-      <p class="mb-4">Analyze your first image to see it appear here.</p>
+      <p class="mb-4">Analyze your first image to see it appear here on this browser.</p>
       <a href="{{ url_for('upload') }}" class="btn btn-scan"><i class="bi bi-upload"></i> Upload Image</a>
     </div>
-    {% endif %}
   </div>
 </section>
 {% endblock %}

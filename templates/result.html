@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Result — CIFAKE{% endblock %}
+{% block title %}Result - CIFAKE{% endblock %}
 
 {% block content %}
 <section class="page-header">
   <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div>
       <h2 class="section-title mb-1"><i class="bi bi-clipboard-data me-2"></i>Analysis Result</h2>
-      <p class="section-sub mb-0 mono">{{ original_filename }} · {{ created_at }}</p>
+      <p class="section-sub mb-0 mono">{{ original_filename }} - {{ created_at }}</p>
     </div>
     <div class="d-flex gap-2">
-      <a href="{{ url_for('download_report', record_id=id) }}" class="btn btn-download">
+      <a href="{{ report_download_url }}" class="btn btn-download">
         <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF Report
       </a>
       <a href="{{ url_for('upload') }}" class="btn btn-outline-ghost">
@@ -72,7 +72,7 @@
           <hr style="border-color:var(--border);">
           <p class="text-muted small mb-0">
             The model outputs a single sigmoid probability of "REAL". FAKE probability is
-            computed as <span class="mono">1 − P(REAL)</span>.
+            computed as <span class="mono">1 - P(REAL)</span>.
           </p>
         </div>
       </div>
@@ -80,4 +80,8 @@
 
   </div>
 </section>
+
+<script id="prediction-history-record" type="application/json">
+  {{ history_record|tojson }}
+</script>
 {% endblock %}

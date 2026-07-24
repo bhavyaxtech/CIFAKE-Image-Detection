@@ -176,10 +176,13 @@ def load_trained_model(model_path: str) -> tf.keras.Model:
     """Load a saved `.keras` model."""
     validate_model_file(model_path)
     try:
-        # This project owns the saved model and its Lambda layer is defined in
-        # build_efficientnet_model; allow Keras to deserialize that trusted
-        # local artifact for evaluation and web inference.
-        model = tf.keras.models.load_model(model_path, safe_mode=False)
+        # Loading the full `.keras` artifact can crash native Windows
+        # TensorFlow/Python 3.13 while deserializing the saved Lambda layer.
+        # Rebuild the known architecture and load only the saved weights; this
+        # preserves inference behaviour without executing serialized Lambda
+        # config during startup.
+        model = build_efficientnet_model(weights=None)
+        model.load_weights(model_path)
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Could not load model from '{model_path}': {exc}") from exc
 
